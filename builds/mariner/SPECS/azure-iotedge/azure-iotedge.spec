@@ -43,7 +43,7 @@ This package contains the IoT Edge daemon and CLI tool
 
 %define iotedge_user iotedge
 %define iotedge_group %{iotedge_user}
-%define iotedge_home %{_localstatedir}/lib/iotedge
+%define iotedge_home %{_localstatedir}/lib/run/iotedge
 %define iotedge_logdir %{_localstatedir}/log/iotedge
 %define iotedge_confdir %{_sysconfdir}/iotedge
 %define iotedge_datadir %{_datadir}/iotedge
@@ -58,29 +58,29 @@ This package contains the IoT Edge daemon and CLI tool
 pushd ~
 tar xf %{SOURCE1} --no-same-owner --strip-components=1
 popd
-export CARGO_HOME=~/.cargo
-export PATH=$PATH:$CARGO_HOME/bin
-export RUSTUP_HOME=~/.rustup
-
-cd %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
-
-# Remove FORTIFY_SOURCE from CFLAGS to fix compilation error
-CFLAGS="`echo " %{build_cflags} " | sed 's/ -Wp,-D_FORTIFY_SOURCE=2//'`"
-export CFLAGS
-
-IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
-export IOTEDGE_HOST
-
-make %{?_smp_mflags} release
 
 %install
-IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
-export IOTEDGE_HOST
 export CARGO_HOME=~/.cargo
 export PATH=$PATH:$CARGO_HOME/bin
 export RUSTUP_HOME=~/.rustup
 cd edgelet
 make %{?_smp_mflags} install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir} docdir=%{_docdir}/iotedge-%{version}
+
+rm %{buildroot}/%{_unitdir}/iotedge.service
+rm %{buildroot}/var/lib/iotedge/mgmt.sock
+rm %{buildroot}/var/lib/iotedge/workload.sock
+
+install -D contrib/systemd/mariner/iotedge.mgmt.socket %{buildroot}/%{_unitdir}/iotedge.mgmt.socket
+install -D contrib/systemd/mariner/iotedge.socket %{buildroot}/%{_unitdir}/iotedge.socket
+
+# replace initial iotedge.service which does not specify mgnt and workload sockets
+install -D contrib/systemd/mariner/iotedge.service %{buildroot}/%{_unitdir}/iotedge.service
+
+cat > %{buildroot}%{_presetdir}/00-aziot-edged.preset << EOF
+# Enable iotedge to start automatically.
+
+enable iotedge.service
+EOF
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -160,10 +160,9 @@ echo "==========================================================================
 
 # systemd
 %{_unitdir}/iotedge.service
-
-# sockets
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/mgmt.sock
-%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/workload.sock
+%{_unitdir}/iotedge.socket
+%{_unitdir}/iotedge.mgmt.socket
+%{_presetdir}/00-aziot-edged.preset
 
 # dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}
@@ -174,7 +173,9 @@ echo "==========================================================================
 %doc %{_docdir}/iotedge-%{version}/trademark
 
 %changelog
-*   Sun Jan 10 2021 Chad Zawistowski <chzawist@microsoft.com> @@VERSION@@-1
+*   Tue Jul 19 2022 Joseph Knierman <joknierm@microsoft.com> @@VERSION@@-1
+-   changed to use systemd socket activation
+*   Sun Jan 10 2021 Chad Zawistowski <chzawist@microsoft.com> 1.0.10.4-2
 -   Update to version @@VERSION@@.
 *   Mon Jan 04 2021 Chad Zawistowski <chzawist@microsoft.com> 1.0.10.4-1
 -   Update to version 1.0.10.4.
