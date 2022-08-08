@@ -359,5 +359,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .Returns(id);
             return command;
         }
+<<<<<<< HEAD
+=======
+
+        Mock<ICommand> MakeMockCommandThatThrowsExecutionPrerequisiteException(string id)
+        {
+            var command = new Mock<ICommand>();
+            command.SetupGet(c => c.Id).Returns(id);
+            command.Setup(c => c.ExecuteAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ExecutionPrerequisiteException("No donuts for you"));
+            command.Setup(c => c.Show())
+                .Returns(id);
+            return command;
+        }
+>>>>>>> f11a09a53... [main] Revert Mariner 2.0 to latest working version (#6565)
     }
 }

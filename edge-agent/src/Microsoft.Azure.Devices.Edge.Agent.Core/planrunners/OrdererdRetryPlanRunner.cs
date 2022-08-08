@@ -108,6 +108,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
                         // since this command failed, record its status
                         int newRunCount = this.commandRunStatus.ContainsKey(command.Id) ? this.commandRunStatus[command.Id].RunCount : 0;
                         this.commandRunStatus[command.Id] = new CommandRunStats(newRunCount + 1, this.systemTime.UtcNow, ex);
+<<<<<<< HEAD:edge-agent/src/Microsoft.Azure.Devices.Edge.Agent.Core/planrunners/OrdererdRetryPlanRunner.cs
+=======
+
+                        if (ex is ExecutionPrerequisiteException)
+                        {
+                            Events.StopProcessingCommands(deploymentId, command);
+                            break;
+                        }
+>>>>>>> f11a09a53... [main] Revert Mariner 2.0 to latest working version (#6565):edge-agent/src/Microsoft.Azure.Devices.Edge.Agent.Core/planrunner/OrdererdRetryPlanRunner.cs
                     }
                 }
 
@@ -117,6 +126,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners
             }
         }
 
+<<<<<<< HEAD:edge-agent/src/Microsoft.Azure.Devices.Edge.Agent.Core/planrunners/OrdererdRetryPlanRunner.cs
+=======
+        bool ShouldSkipRemaining(bool shouldRun, ICommand command)
+        {
+            bool didCommandFailWithPrereqException = this.commandRunStatus.ContainsKey(command.Id) && this.commandRunStatus[command.Id].Exception.Match(
+            e =>
+            {
+                return e is ExecutionPrerequisiteException;
+            },
+            () =>
+            {
+                return false;
+            });
+
+            return !shouldRun && didCommandFailWithPrereqException;
+        }
+
+>>>>>>> f11a09a53... [main] Revert Mariner 2.0 to latest working version (#6565):edge-agent/src/Microsoft.Azure.Devices.Edge.Agent.Core/planrunner/OrdererdRetryPlanRunner.cs
         (bool shouldRun, int runCount, TimeSpan coolOffPeriod, TimeSpan elapsedTime) ShouldRunCommand(ICommand command)
         {
             // the command should be run if there's no entry for it in our status dictionary
